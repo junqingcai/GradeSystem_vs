@@ -1,0 +1,26 @@
+CLion EasyX 图形版运行说明
+
+1. 本项目源码文件使用 UTF-8 保存。
+2. 项目入口为 main.cpp，使用 EasyX 创建图形窗口。
+3. CMakeLists.txt 已设置：
+   - MSVC: /source-charset:utf-8 /execution-charset:utf-8
+   - MinGW/GCC: -finput-charset=UTF-8 -fexec-charset=UTF-8
+   - 链接 EasyX 图形库
+
+如果使用 CLion 捆绑的 MinGW，请确保工具链环境中包含：
+
+D:\software\Toolbox\CLion\bin\mingw\bin
+
+并确认该目录中存在：
+
+- include\graphics.h
+- lib\libeasyxw.a
+
+如果 CLion 中无法构建或无法启动窗口，请按下面步骤操作：
+
+1. 关闭正在运行的程序。
+2. 删除项目目录下的 cmake-build-* 文件夹。
+3. 在 CLion 中点击 File -> Reload CMake Project。
+4. 重新 Build，再 Run。
+
+如果 CMake 提示 EasyX was not found，请安装 EasyX for MinGW，或设置环境变量 EASYX_ROOT 指向 EasyX 安装目录。

@@ -1,0 +1,77 @@
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  line-height: 52rpx;
+}
+
+.income {
+  color: #1f7a5a;
+  font-weight: 700;
+}
+
+.expense {
+  color: #d9480f;
+  font-weight: 700;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.category-title {
+  margin-bottom: 14rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.record-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 22rpx 0;
+  border-top: 1rpx solid #edf2f7;
+}
+
+.record-info {
+  flex: 1;
+  padding-right: 20rpx;
+}
+
+.record-right {
+  width: 220rpx;
+  text-align: right;
+}
+
+.small {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+}
+
+.row-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.mini-btn {
+  width: 88rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  padding: 0;
+  color: #1f7a5a;
+  background: #e5f5ef;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+}
+
+.mini-btn::after {
+  border: 0;
+}
+
+.danger {
+  color: #c62828;
+  background: #fdecea;
+}

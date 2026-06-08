@@ -1,0 +1,50 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/calendar/calendar",
+    "pages/detail/detail",
+    "pages/edit/edit",
+    "pages/statistics/statistics",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "navigationBarTitleText": "每日生活费管理",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f7fb"
+  },
+  "tabBar": {
+    "color": "#7b8794",
+    "selectedColor": "#1f7a5a",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/tabbar/home_normal.png",
+        "selectedIconPath": "assets/tabbar/home_active.png"
+      },
+      {
+        "pagePath": "pages/calendar/calendar",
+        "text": "日历",
+        "iconPath": "assets/tabbar/calendar_normal.png",
+        "selectedIconPath": "assets/tabbar/calendar_active.png"
+      },
+      {
+        "pagePath": "pages/statistics/statistics",
+        "text": "统计",
+        "iconPath": "assets/tabbar/stats_normal.png",
+        "selectedIconPath": "assets/tabbar/stats_active.png"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "设置",
+        "iconPath": "assets/tabbar/settings_normal.png",
+        "selectedIconPath": "assets/tabbar/settings_active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

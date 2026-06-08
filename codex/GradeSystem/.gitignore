@@ -1,0 +1,10 @@
+/.idea/
+/cmake-build-*/
+/GradeSystem/cmake-build-*/
+*.exe
+*.dll
+*.a
+*.obj
+*.o
+backup.txt
+export.txt

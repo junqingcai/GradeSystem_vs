@@ -1,0 +1,105 @@
+.top-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-card {
+  padding: 18rpx;
+  background: #ffffff;
+  border-radius: 8rpx;
+  box-shadow: 0 8rpx 24rpx rgba(31, 41, 51, 0.06);
+}
+
+.week-row,
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10rpx;
+}
+
+.week-cell {
+  padding: 12rpx 0;
+  text-align: center;
+  color: #7b8794;
+  font-size: 24rpx;
+}
+
+.day-cell {
+  box-sizing: border-box;
+  min-height: 92rpx;
+  padding: 10rpx 4rpx;
+  border-radius: 8rpx;
+  text-align: center;
+}
+
+.empty-cell {
+  background: transparent;
+}
+
+.day-number {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.day-money {
+  margin-top: 8rpx;
+  font-size: 20rpx;
+}
+
+.zero {
+  color: #52606d;
+  background: #eef2f6;
+}
+
+.green {
+  color: #146c43;
+  background: #dff7ea;
+}
+
+.yellow {
+  color: #8a6100;
+  background: #fff3bf;
+}
+
+.red {
+  color: #b42318;
+  background: #ffe3e3;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.legend-item {
+  color: #52606d;
+  font-size: 24rpx;
+}
+
+.dot {
+  display: inline-block;
+  width: 20rpx;
+  height: 20rpx;
+  margin-right: 10rpx;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.zero-bg {
+  background: #eef2f6;
+}
+
+.green-bg {
+  background: #dff7ea;
+}
+
+.yellow-bg {
+  background: #fff3bf;
+}
+
+.red-bg {
+  background: #ffe3e3;
+}

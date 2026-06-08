@@ -1,0 +1,54 @@
+<view class="page">
+  <view class="header">
+    <view>
+      <view class="title">每日生活费管理</view>
+      <view class="muted">{{currentMonth}} · 今天 {{today}}</view>
+    </view>
+  </view>
+
+  <view class="card summary-card">
+    <view class="summary-main">
+      <view class="muted">本月剩余</view>
+      <view class="balance">¥{{summary.remaining}}</view>
+      <view class="muted">剩余 {{summary.remainingDays}} 天，平均每天还能花 ¥{{summary.averageCanSpend}}</view>
+    </view>
+  </view>
+
+  <view class="grid">
+    <view class="card stat-card">
+      <view class="muted">本月预算</view>
+      <view class="money">¥{{summary.budget}}</view>
+    </view>
+    <view class="card stat-card">
+      <view class="muted">本月收入</view>
+      <view class="money income">¥{{summary.income}}</view>
+    </view>
+    <view class="card stat-card">
+      <view class="muted">本月支出</view>
+      <view class="money expense">¥{{summary.expense}}</view>
+    </view>
+    <view class="card stat-card" bindtap="goDetail">
+      <view class="muted">今日支出</view>
+      <view class="money expense">¥{{summary.todayExpense}}</view>
+    </view>
+  </view>
+
+  <view class="actions">
+    <button class="btn" bindtap="addExpense">添加支出</button>
+    <button class="btn btn-secondary" bindtap="addIncome">添加收入</button>
+  </view>
+
+  <view class="card">
+    <view class="section-title">最近记录</view>
+    <view wx:if="{{recentRecords.length === 0}}" class="empty">暂无记录，先添加一笔收支吧</view>
+    <view wx:for="{{recentRecords}}" wx:key="id" class="record-row">
+      <view>
+        <view>{{item.remark || item.category}}</view>
+        <view class="muted small">{{item.date}} · {{item.category}} · {{item.typeText}}</view>
+      </view>
+      <view class="{{item.type === 'expense' ? 'amount-expense' : 'amount-income'}}">
+        {{item.type === 'expense' ? '-' : '+'}}¥{{item.amountText}}
+      </view>
+    </view>
+  </view>
+</view>

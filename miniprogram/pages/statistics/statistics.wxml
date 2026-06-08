@@ -1,0 +1,27 @@
+<view class="page">
+  <view class="card">
+    <view class="section-title">{{currentMonth}} 消费统计</view>
+    <view class="stat-list">
+      <view class="stat-line"><text>本月支出总额</text><text class="expense">¥{{statistics.expense}}</text></view>
+      <view class="stat-line"><text>本月收入总额</text><text class="income">¥{{statistics.income}}</text></view>
+      <view class="stat-line"><text>本月剩余金额</text><text class="money">¥{{statistics.remaining}}</text></view>
+      <view class="stat-line"><text>平均每日消费</text><text>¥{{statistics.averageDailyExpense}}</text></view>
+      <view class="stat-line"><text>超出日均预算天数</text><text>{{statistics.overBudgetDays}} 天</text></view>
+      <view class="stat-line"><text>本月消费最高一天</text><text>{{statistics.maxDayDate}} ¥{{statistics.maxDayAmount}}</text></view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">分类消费排行</view>
+    <view wx:if="{{statistics.categoryRank.length === 0}}" class="empty">本月暂无支出记录</view>
+    <view wx:for="{{statistics.categoryRank}}" wx:key="category" class="rank-row">
+      <view class="rank-info">
+        <view>{{item.category}}</view>
+        <view class="bar">
+          <view class="bar-inner" style="width: {{item.percentText}}%;"></view>
+        </view>
+      </view>
+      <view class="rank-money">¥{{item.amountText}}，占 {{item.percentText}}%</view>
+    </view>
+  </view>
+</view>

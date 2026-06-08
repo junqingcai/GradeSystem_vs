@@ -1,0 +1,31 @@
+<view class="page">
+  <view class="card top-card">
+    <view>
+      <view class="section-title">{{currentMonth}} 日历</view>
+      <view class="muted">日均预算：¥{{dailyBudgetText}}</view>
+    </view>
+  </view>
+
+  <view class="calendar-card">
+    <view class="week-row">
+      <view wx:for="{{weekNames}}" wx:key="*this" class="week-cell">{{item}}</view>
+    </view>
+
+    <view class="day-grid">
+      <view wx:for="{{days}}" wx:key="date">
+        <view wx:if="{{item.empty}}" class="day-cell empty-cell"></view>
+        <view wx:else class="day-cell {{item.level}}" data-date="{{item.date}}" bindtap="openDetail">
+          <view class="day-number">{{item.day}}</view>
+          <view class="day-money">¥{{item.expenseText}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card legend">
+    <view class="legend-item"><text class="dot zero-bg"></text>无支出</view>
+    <view class="legend-item"><text class="dot green-bg"></text>低于 80%</view>
+    <view class="legend-item"><text class="dot yellow-bg"></text>接近日均</view>
+    <view class="legend-item"><text class="dot red-bg"></text>超出日均</view>
+  </view>
+</view>

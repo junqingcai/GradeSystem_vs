@@ -1,0 +1,35 @@
+<view class="page">
+  <view class="card">
+    <view class="section-title">{{dateTitle}}</view>
+    <view class="summary-line">
+      <view>当天支出：<text class="expense">¥{{expenseText}}</text></view>
+      <view>当天收入：<text class="income">¥{{incomeText}}</text></view>
+    </view>
+  </view>
+
+  <view class="actions">
+    <button class="btn" bindtap="addExpense">添加支出</button>
+    <button class="btn btn-secondary" bindtap="addIncome">添加收入</button>
+  </view>
+
+  <view wx:if="{{groups.length === 0}}" class="card empty">当天暂无收支记录</view>
+
+  <view wx:for="{{groups}}" wx:key="category" class="card">
+    <view class="category-title">{{item.category}}</view>
+    <view wx:for="{{item.records}}" wx:for-item="record" wx:key="id" class="record-row">
+      <view class="record-info">
+        <view>{{record.remark || record.category}}</view>
+        <view class="muted small">{{record.typeText}} · {{record.createTime}}</view>
+      </view>
+      <view class="record-right">
+        <view class="{{record.type === 'expense' ? 'expense' : 'income'}}">
+          {{record.type === 'expense' ? '-' : '+'}}¥{{record.amountText}}
+        </view>
+        <view class="row-buttons">
+          <button class="mini-btn" data-id="{{record.id}}" bindtap="editRecord">修改</button>
+          <button class="mini-btn danger" data-id="{{record.id}}" bindtap="deleteRecord">删除</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

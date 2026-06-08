@@ -1,0 +1,39 @@
+.save-btn {
+  margin-top: 24rpx;
+}
+
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.category-input {
+  flex: 1;
+  margin-top: 0;
+}
+
+.small-btn {
+  width: 132rpx;
+  margin: 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.tag {
+  padding: 10rpx 18rpx;
+  color: #d9480f;
+  background: #fff4e6;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+}
+
+.income-tag {
+  color: #1f7a5a;
+  background: #e5f5ef;
+}

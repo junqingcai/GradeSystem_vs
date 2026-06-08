@@ -1,0 +1,19 @@
+.form-item {
+  margin-bottom: 28rpx;
+}
+
+.label {
+  margin-bottom: 10rpx;
+  color: #52606d;
+  font-size: 26rpx;
+}
+
+.picker {
+  box-sizing: border-box;
+  height: 76rpx;
+  line-height: 76rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #d9e2ec;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
