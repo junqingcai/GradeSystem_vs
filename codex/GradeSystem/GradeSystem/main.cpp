@@ -12,9 +12,9 @@
 namespace {
 
 constexpr int WINDOW_WIDTH = 1280;
-constexpr int WINDOW_HEIGHT = 760;
+constexpr int WINDOW_HEIGHT = 680;
 constexpr int SIDEBAR_WIDTH = 210;
-constexpr int PAGE_SIZE = 11;
+constexpr int PAGE_SIZE = 10;
 
 const COLORREF COLOR_BG = RGB(244, 247, 250);
 const COLORREF COLOR_PANEL = RGB(255, 255, 255);
@@ -191,9 +191,9 @@ void drawSidebar(const AppState &app) {
     drawButton(statistics, L"成绩统计",
                app.view == View::Statistics ? COLOR_PRIMARY : RGB(48, 63, 78));
 
-    drawText(L"数据文件", 26, 620, RGB(135, 155, 174), 14);
-    drawText(L"data.txt", 26, 646, WHITE, 16, FW_SEMIBOLD);
-    drawText(L"自动保存修改", 26, 675, RGB(135, 155, 174), 14);
+    drawText(L"数据文件", 26, 555, RGB(135, 155, 174), 14);
+    drawText(L"data.txt", 26, 581, WHITE, 16, FW_SEMIBOLD);
+    drawText(L"自动保存修改", 26, 610, RGB(135, 155, 174), 14);
 }
 
 void drawHeader(const AppState &app) {
@@ -218,7 +218,7 @@ void drawStudentsView(const AppState &app) {
     drawButton({912, 102, 1010, 142}, L"导出报表", RGB(0, 137, 123));
     drawButton({1128, 102, 1246, 142}, L"退出", COLOR_DANGER);
 
-    fillPanel({242, 162, 1246, 650}, COLOR_PANEL);
+    fillPanel({242, 162, 1246, 590}, COLOR_PANEL);
     drawText(L"学号", 264, 178, COLOR_MUTED, 15, FW_SEMIBOLD);
     drawText(L"姓名", 390, 178, COLOR_MUTED, 15, FW_SEMIBOLD);
     drawText(L"C 语言", 530, 178, COLOR_MUTED, 15, FW_SEMIBOLD);
@@ -263,10 +263,10 @@ void drawStudentsView(const AppState &app) {
     wchar_t pageText[64];
     swprintf(pageText, 64, L"共 %d 条记录  第 %d / %d 页",
              static_cast<int>(students.size()), page + 1, pageCount);
-    drawText(pageText, 260, 676, COLOR_MUTED, 15);
-    drawButton({1035, 666, 1125, 706}, L"上一页", page > 0 ? COLOR_PRIMARY : COLOR_BORDER,
+    drawText(pageText, 260, 621, COLOR_MUTED, 15);
+    drawButton({1035, 611, 1125, 651}, L"上一页", page > 0 ? COLOR_PRIMARY : COLOR_BORDER,
                page > 0 ? WHITE : COLOR_MUTED);
-    drawButton({1135, 666, 1225, 706}, L"下一页",
+    drawButton({1135, 611, 1225, 651}, L"下一页",
                page + 1 < pageCount ? COLOR_PRIMARY : COLOR_BORDER,
                page + 1 < pageCount ? WHITE : COLOR_MUTED);
 }
@@ -312,7 +312,7 @@ void drawStatisticsView(const AppState &app) {
     swprintf(text, 64, L"%d", excellent);
     drawStatCard(992, 112, 230, L"平均分优秀", text, RGB(126, 87, 194));
 
-    fillPanel({242, 258, 1222, 620}, COLOR_PANEL);
+    fillPanel({242, 258, 1222, 570}, COLOR_PANEL);
     drawText(L"班级概览", 270, 282, COLOR_TEXT, 22, FW_BOLD);
     if (hasBest) {
         std::wstring bestText = utf8ToWide(best.num) + L"  " + utf8ToWide(best.name);
@@ -331,9 +331,9 @@ void drawStatisticsView(const AppState &app) {
     swprintf(text, 64, L"%.1f%%", excellentRate);
     drawText(text, 900, 378, RGB(126, 87, 194), 28, FW_BOLD);
 
-    drawButton({242, 656, 350, 700}, L"导出报表", RGB(0, 137, 123));
-    drawButton({362, 656, 470, 700}, L"保存数据", COLOR_PRIMARY);
-    drawButton({1120, 656, 1222, 700}, L"退出", COLOR_DANGER);
+    drawButton({242, 605, 350, 649}, L"导出报表", RGB(0, 137, 123));
+    drawButton({362, 605, 470, 649}, L"保存数据", COLOR_PRIMARY);
+    drawButton({1120, 605, 1222, 649}, L"退出", COLOR_DANGER);
 }
 
 void render(const AppState &app) {
@@ -423,9 +423,9 @@ bool handleStudentsClick(AppState &app, int x, int y) {
         app.status = L"报表已导出到 export.txt";
     } else if (Rect{1128, 102, 1246, 142}.contains(x, y)) {
         return false;
-    } else if (Rect{1035, 666, 1125, 706}.contains(x, y)) {
+    } else if (Rect{1035, 611, 1125, 651}.contains(x, y)) {
         if (app.page > 0) --app.page;
-    } else if (Rect{1135, 666, 1225, 706}.contains(x, y)) {
+    } else if (Rect{1135, 611, 1225, 651}.contains(x, y)) {
         auto students = filteredStudents(app);
         int pageCount = std::max(1, static_cast<int>(
             std::ceil(students.size() / static_cast<double>(PAGE_SIZE))));
@@ -460,13 +460,13 @@ bool handleClick(AppState &app, int x, int y) {
         return true;
     }
     if (app.view == View::Students) return handleStudentsClick(app, x, y);
-    if (Rect{242, 656, 350, 700}.contains(x, y)) {
+    if (Rect{242, 605, 350, 649}.contains(x, y)) {
         exportReport(app.head, EXPORT_FILE);
         app.status = L"报表已导出到 export.txt";
-    } else if (Rect{362, 656, 470, 700}.contains(x, y)) {
+    } else if (Rect{362, 605, 470, 649}.contains(x, y)) {
         saveToFile(app.head, DATA_FILE);
         app.status = L"数据已保存";
-    } else if (Rect{1120, 656, 1222, 700}.contains(x, y)) {
+    } else if (Rect{1120, 605, 1222, 649}.contains(x, y)) {
         return false;
     }
     return true;
@@ -485,20 +485,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     loadFromFile(app.head, DATA_FILE);
     initgraph(WINDOW_WIDTH, WINDOW_HEIGHT);
-    SetWindowTextW(GetHWnd(), L"学生成绩管理系统 - EasyX");
+    HWND window = GetHWnd();
+    SetWindowTextW(window, L"学生成绩管理系统 - EasyX");
+
+    RECT windowRect;
+    RECT workArea;
+    GetWindowRect(window, &windowRect);
+    SystemParametersInfoW(SPI_GETWORKAREA, 0, &workArea, 0);
+    int windowWidth = windowRect.right - windowRect.left;
+    int windowHeight = windowRect.bottom - windowRect.top;
+    int windowX = workArea.left + (workArea.right - workArea.left - windowWidth) / 2;
+    int windowY = workArea.top + (workArea.bottom - workArea.top - windowHeight) / 2;
+    SetWindowPos(window, nullptr, windowX, windowY, 0, 0,
+                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+
     setbkmode(TRANSPARENT);
     BeginBatchDraw();
     render(app);
 
     bool running = true;
-    while (running) {
-        ExMessage message = getmessage(EX_MOUSE | EX_KEY);
-        if (message.message == WM_LBUTTONDOWN) {
-            running = handleClick(app, message.x, message.y);
-            if (running) render(app);
-        } else if (message.message == WM_KEYDOWN && message.vkcode == VK_ESCAPE) {
-            running = false;
+    while (running && IsWindow(window)) {
+        ExMessage message;
+        while (peekmessage(&message, EX_MOUSE | EX_KEY)) {
+            if (message.message == WM_LBUTTONDOWN) {
+                running = handleClick(app, message.x, message.y);
+            } else if (message.message == WM_KEYDOWN && message.vkcode == VK_ESCAPE) {
+                running = false;
+            }
         }
+        if (running && IsWindow(window)) render(app);
+        Sleep(30);
     }
 
     saveToFile(app.head, DATA_FILE);

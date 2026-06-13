@@ -55,6 +55,9 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "GNU")
             -fexec-charset=UTF-8)
 endif ()
 
-# Copy data.txt to CLion's build/run directory so the program can read it.
-configure_file(${CMAKE_SOURCE_DIR}/data.txt
-        ${CMAKE_BINARY_DIR}/data.txt COPYONLY)
+# Seed the runtime data only for a new build directory. Reconfiguring CMake
+# must not overwrite records saved by the application.
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/data.txt")
+    configure_file("${CMAKE_SOURCE_DIR}/data.txt"
+            "${CMAKE_BINARY_DIR}/data.txt" COPYONLY)
+endif ()
