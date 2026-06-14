@@ -2,20 +2,27 @@
 #include <windows.h>
 
 #include <algorithm>
-#include <cmath>
-#include <cstring>
+#include <cstdint>
+#include <cwchar>
 #include <string>
-#include <vector>
 
+#include "app_logic.h"
+#include "creator_info.h"
 #include "student.h"
 
 namespace {
 
-constexpr int WINDOW_WIDTH = 1280;
-constexpr int WINDOW_HEIGHT = 680;
+/* 所有界面元素都按固定逻辑尺寸布局，再统一缩放到实际窗口。 */
+constexpr int LOGICAL_WIDTH = 1280;
+constexpr int LOGICAL_HEIGHT = 680;
 constexpr int SIDEBAR_WIDTH = 210;
 constexpr int PAGE_SIZE = 10;
 
+int canvasWidth = 1600;
+int canvasHeight = 850;
+IMAGE logicalCanvas(LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+/* 界面统一配色。 */
 const COLORREF COLOR_BG = RGB(244, 247, 250);
 const COLORREF COLOR_PANEL = RGB(255, 255, 255);
 const COLORREF COLOR_SIDEBAR = RGB(27, 38, 51);
@@ -38,11 +45,14 @@ struct Rect {
     }
 };
 
+/* 左侧导航栏对应的三个页面。 */
 enum class View {
     Students,
-    Statistics
+    Statistics,
+    About
 };
 
+/* 程序运行期间需要在各页面之间共享的状态。 */
 struct AppState {
     Node *head = nullptr;
     View view = View::Students;
@@ -51,6 +61,7 @@ struct AppState {
     std::wstring status = L"就绪";
 };
 
+/* 数据文件使用 UTF-8，EasyX 文本接口使用宽字符，因此需要双向转换。 */
 std::wstring utf8ToWide(const char *text) {
     if (text == nullptr || text[0] == '\0') return L"";
     int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
@@ -72,7 +83,62 @@ std::string wideToUtf8(const wchar_t *text) {
 }
 
 void setFont(int height, int weight = FW_NORMAL) {
-    settextstyle(height, 0, L"Microsoft YaHei UI", 0, 0, weight, false, false, false);
+    constexpr BYTE CLEARTYPE_NATURAL = 6;
+    LOGFONTW font{};
+    font.lfHeight = height;
+    font.lfWeight = weight;
+    font.lfCharSet = DEFAULT_CHARSET;
+    font.lfOutPrecision = OUT_TT_PRECIS;
+    font.lfClipPrecision = CLIP_DEFAULT_PRECIS;
+    font.lfQuality = CLEARTYPE_NATURAL;
+    font.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
+    wcscpy_s(font.lfFaceName, L"Microsoft YaHei UI");
+    settextstyle(&font);
+}
+
+/* 启用高 DPI 感知，避免 Windows 对窗口进行二次模糊缩放。 */
+void enableHighDpiRendering() {
+    using SetDpiAwarenessContext = BOOL(WINAPI *)(HANDLE);
+    using SetDpiAware = BOOL(WINAPI *)();
+    HMODULE user32 = GetModuleHandleW(L"user32.dll");
+    if (user32 != nullptr) {
+        auto setDpiContext = reinterpret_cast<SetDpiAwarenessContext>(
+            GetProcAddress(user32, "SetProcessDpiAwarenessContext"));
+        if (setDpiContext != nullptr) {
+            constexpr intptr_t PER_MONITOR_AWARE_V2 = -4;
+            if (setDpiContext(reinterpret_cast<HANDLE>(PER_MONITOR_AWARE_V2))) return;
+        }
+        auto setDpiAware = reinterpret_cast<SetDpiAware>(
+            GetProcAddress(user32, "SetProcessDPIAware"));
+        if (setDpiAware != nullptr) setDpiAware();
+    }
+}
+
+/* 根据当前显示器工作区计算接近全屏且不变形的画布尺寸。 */
+void calculateCanvasSize(const RECT &workArea) {
+    constexpr int OUTER_HORIZONTAL_MARGIN = 32;
+    constexpr int OUTER_VERTICAL_SPACE = 88;
+    const int workWidth = static_cast<int>(workArea.right - workArea.left);
+    const int workHeight = static_cast<int>(workArea.bottom - workArea.top);
+    const int availableWidth =
+        std::max(640, workWidth - OUTER_HORIZONTAL_MARGIN);
+    const int availableHeight =
+        std::max(360, workHeight - OUTER_VERTICAL_SPACE);
+    /* 横纵方向使用同一缩放比例，保持原界面宽高比。 */
+    const double scale = std::min(
+        availableWidth / static_cast<double>(LOGICAL_WIDTH),
+        availableHeight / static_cast<double>(LOGICAL_HEIGHT));
+    canvasWidth = static_cast<int>(LOGICAL_WIDTH * scale);
+    canvasHeight = static_cast<int>(LOGICAL_HEIGHT * scale);
+}
+
+int toLogicalX(int value) {
+    /* 鼠标消息给出物理坐标，需要换算回固定逻辑坐标。 */
+    return value * LOGICAL_WIDTH / canvasWidth;
+}
+
+int toLogicalY(int value) {
+    return value * LOGICAL_HEIGHT / canvasHeight;
 }
 
 void drawText(const std::wstring &text, int x, int y, COLORREF color, int size = 18,
@@ -107,16 +173,12 @@ void showMessage(const wchar_t *text, UINT type = MB_OK | MB_ICONINFORMATION) {
 bool promptText(const wchar_t *title, const wchar_t *prompt, std::wstring &value,
                 const wchar_t *defaultValue = L"") {
     wchar_t buffer[128] = {};
-    wcsncpy(buffer, defaultValue, 127);
+    const size_t defaultLength = std::min<size_t>(wcslen(defaultValue), 127);
+    wmemcpy(buffer, defaultValue, defaultLength);
+    buffer[defaultLength] = L'\0';
     if (!InputBox(buffer, 128, prompt, title, defaultValue, 360, 150, false)) return false;
     value = buffer;
     return !value.empty();
-}
-
-bool parseScore(const std::wstring &text, float &score) {
-    wchar_t *end = nullptr;
-    score = wcstof(text.c_str(), &end);
-    return end != text.c_str() && *end == L'\0' && score >= 0.0f && score <= 100.0f;
 }
 
 bool promptScore(const wchar_t *prompt, float &score, float defaultScore = 0.0f) {
@@ -124,7 +186,7 @@ bool promptScore(const wchar_t *prompt, float &score, float defaultScore = 0.0f)
     swprintf(defaultValue, 32, L"%.2f", defaultScore);
     std::wstring input;
     if (!promptText(L"成绩输入", prompt, input, defaultValue)) return false;
-    if (!parseScore(input, score)) {
+    if (!parseScoreText(input.c_str(), &score)) {
         showMessage(L"成绩必须是 0 到 100 之间的数字。", MB_OK | MB_ICONWARNING);
         return false;
     }
@@ -132,16 +194,15 @@ bool promptScore(const wchar_t *prompt, float &score, float defaultScore = 0.0f)
 }
 
 bool promptStudent(AppState &app, Student &student, bool editing) {
+    /* 添加和修改共用一套输入流程；修改时保留原学号。 */
     std::wstring input;
     if (!editing) {
         if (!promptText(L"添加学生", L"请输入学号（4-19 位数字）：", input)) return false;
         std::string number = wideToUtf8(input.c_str());
-        if (!isNumFormatValid(number.c_str()) || isNumExist(app.head, number.c_str())) {
+        if (!setStudentNumber(app.head, &student, number.c_str())) {
             showMessage(L"学号格式不正确，或该学号已经存在。", MB_OK | MB_ICONWARNING);
             return false;
         }
-        strncpy(student.num, number.c_str(), NUM_LEN - 1);
-        student.num[NUM_LEN - 1] = '\0';
     }
 
     std::wstring currentName = editing ? utf8ToWide(student.name) : L"";
@@ -150,12 +211,10 @@ bool promptStudent(AppState &app, Student &student, bool editing) {
         return false;
     }
     std::string name = wideToUtf8(input.c_str());
-    if (!isNameFormatValid(name.c_str()) || name.size() >= NAME_LEN) {
+    if (!setStudentName(&student, name.c_str())) {
         showMessage(L"姓名不能为空，且 UTF-8 长度不能超过 19 字节。", MB_OK | MB_ICONWARNING);
         return false;
     }
-    strncpy(student.name, name.c_str(), NAME_LEN - 1);
-    student.name[NAME_LEN - 1] = '\0';
 
     if (!promptScore(L"请输入 C 语言成绩：", student.cScore,
                      editing ? student.cScore : 0.0f)) return false;
@@ -167,29 +226,20 @@ bool promptStudent(AppState &app, Student &student, bool editing) {
     return true;
 }
 
-std::vector<Node *> filteredStudents(const AppState &app) {
-    std::vector<Node *> result;
-    for (Node *node = app.head->next; node != nullptr; node = node->next) {
-        if (app.filter.empty() ||
-            strstr(node->data.num, app.filter.c_str()) != nullptr ||
-            strstr(node->data.name, app.filter.c_str()) != nullptr) {
-            result.push_back(node);
-        }
-    }
-    return result;
-}
-
 void drawSidebar(const AppState &app) {
-    fillPanel({0, 0, SIDEBAR_WIDTH, WINDOW_HEIGHT}, COLOR_SIDEBAR);
+    fillPanel({0, 0, SIDEBAR_WIDTH, LOGICAL_HEIGHT}, COLOR_SIDEBAR);
     drawText(L"GradeSystem", 26, 28, WHITE, 27, FW_BOLD);
     drawText(L"EasyX 图形版", 27, 64, RGB(170, 188, 204), 15);
 
     const Rect students{18, 125, 192, 171};
     const Rect statistics{18, 181, 192, 227};
+    const Rect about{18, 237, 192, 283};
     drawButton(students, L"学生列表",
                app.view == View::Students ? COLOR_PRIMARY : RGB(48, 63, 78));
     drawButton(statistics, L"成绩统计",
                app.view == View::Statistics ? COLOR_PRIMARY : RGB(48, 63, 78));
+    drawButton(about, L"关于",
+               app.view == View::About ? COLOR_PRIMARY : RGB(48, 63, 78));
 
     drawText(L"数据文件", 26, 555, RGB(135, 155, 174), 14);
     drawText(L"data.txt", 26, 581, WHITE, 16, FW_SEMIBOLD);
@@ -197,16 +247,18 @@ void drawSidebar(const AppState &app) {
 }
 
 void drawHeader(const AppState &app) {
-    fillPanel({SIDEBAR_WIDTH, 0, WINDOW_WIDTH, 80}, COLOR_PANEL);
-    drawText(app.view == View::Students ? L"学生成绩管理" : L"班级成绩统计",
-             242, 20, COLOR_TEXT, 28, FW_BOLD);
+    fillPanel({SIDEBAR_WIDTH, 0, LOGICAL_WIDTH, 80}, COLOR_PANEL);
+    const wchar_t *title = L"关于本项目";
+    if (app.view == View::Students) title = L"学生成绩管理";
+    else if (app.view == View::Statistics) title = L"班级成绩统计";
+    drawText(title, 242, 20, COLOR_TEXT, 28, FW_BOLD);
     drawText(app.status, 244, 54, COLOR_MUTED, 14);
 }
 
 void drawStudentsView(const AppState &app) {
-    const auto students = filteredStudents(app);
-    const int pageCount = std::max(1, static_cast<int>(
-        std::ceil(students.size() / static_cast<double>(PAGE_SIZE))));
+    /* 当前页面只按需取得筛选后的记录，不复制整条链表。 */
+    const int studentCount = countFilteredStudents(app.head, app.filter.c_str());
+    const int pageCount = calculatePageCount(studentCount, PAGE_SIZE);
     int page = std::min(app.page, pageCount - 1);
 
     drawButton({242, 102, 340, 142}, L"添加学生", COLOR_SUCCESS);
@@ -231,11 +283,13 @@ void drawStudentsView(const AppState &app) {
     line(258, 205, 1228, 205);
 
     int start = page * PAGE_SIZE;
-    int end = std::min(start + PAGE_SIZE, static_cast<int>(students.size()));
+    int end = std::min(start + PAGE_SIZE, studentCount);
     for (int index = start; index < end; ++index) {
         int row = index - start;
         int y = 215 + row * 38;
-        const Student &student = students[index]->data;
+        Node *node = getFilteredStudentAt(app.head, app.filter.c_str(), index);
+        if (node == nullptr) break;
+        const Student &student = node->data;
         if (row % 2 == 1) fillPanel({252, y - 5, 1236, y + 30}, RGB(248, 250, 252));
         drawText(utf8ToWide(student.num), 264, y, COLOR_TEXT, 15);
         drawText(utf8ToWide(student.name), 390, y, COLOR_TEXT, 15);
@@ -255,14 +309,14 @@ void drawStudentsView(const AppState &app) {
         drawButton({1102, y - 3, 1174, y + 27}, L"删除", COLOR_DANGER);
     }
 
-    if (students.empty()) {
+    if (studentCount == 0) {
         drawText(app.filter.empty() ? L"暂无学生记录" : L"没有符合搜索条件的记录",
                  650, 380, COLOR_MUTED, 20);
     }
 
     wchar_t pageText[64];
     swprintf(pageText, 64, L"共 %d 条记录  第 %d / %d 页",
-             static_cast<int>(students.size()), page + 1, pageCount);
+             studentCount, page + 1, pageCount);
     drawText(pageText, 260, 621, COLOR_MUTED, 15);
     drawButton({1035, 611, 1125, 651}, L"上一页", page > 0 ? COLOR_PRIMARY : COLOR_BORDER,
                page > 0 ? WHITE : COLOR_MUTED);
@@ -280,55 +334,36 @@ void drawStatCard(int x, int y, int width, const wchar_t *title,
 }
 
 void drawStatisticsView(const AppState &app) {
-    int count = 0;
-    int allPass = 0;
-    int excellent = 0;
-    float totalAverage = 0.0f;
-    Student best{};
-    bool hasBest = false;
-
-    for (Node *node = app.head->next; node != nullptr; node = node->next) {
-        const Student &student = node->data;
-        ++count;
-        totalAverage += student.average;
-        if (student.cScore >= PASS_SCORE && student.mathScore >= PASS_SCORE &&
-            student.englishScore >= PASS_SCORE) {
-            ++allPass;
-        }
-        if (student.average >= EXCELLENT_SCORE) ++excellent;
-        if (!hasBest || student.average > best.average) {
-            best = student;
-            hasBest = true;
-        }
-    }
+    /* 统计计算由 C 模块完成，界面层只负责格式化和绘制。 */
+    StudentStats stats{};
+    calculateStudentStats(app.head, &stats);
 
     wchar_t text[64];
-    swprintf(text, 64, L"%d", count);
+    swprintf(text, 64, L"%d", stats.count);
     drawStatCard(242, 112, 230, L"学生人数", text, COLOR_PRIMARY);
-    swprintf(text, 64, L"%.2f", count > 0 ? totalAverage / count : 0.0f);
+    swprintf(text, 64, L"%.2f", stats.classAverage);
     drawStatCard(492, 112, 230, L"班级平均分", text, COLOR_SUCCESS);
-    swprintf(text, 64, L"%d", allPass);
+    swprintf(text, 64, L"%d", stats.allPass);
     drawStatCard(742, 112, 230, L"三科全部及格", text, RGB(255, 152, 0));
-    swprintf(text, 64, L"%d", excellent);
+    swprintf(text, 64, L"%d", stats.excellent);
     drawStatCard(992, 112, 230, L"平均分优秀", text, RGB(126, 87, 194));
 
     fillPanel({242, 258, 1222, 570}, COLOR_PANEL);
     drawText(L"班级概览", 270, 282, COLOR_TEXT, 22, FW_BOLD);
-    if (hasBest) {
-        std::wstring bestText = utf8ToWide(best.num) + L"  " + utf8ToWide(best.name);
+    if (stats.hasBest) {
+        std::wstring bestText =
+            utf8ToWide(stats.best.num) + L"  " + utf8ToWide(stats.best.name);
         drawText(L"平均分最高学生", 280, 342, COLOR_MUTED, 16);
         drawText(bestText, 280, 378, COLOR_TEXT, 26, FW_BOLD);
-        swprintf(text, 64, L"%.2f 分", best.average);
+        swprintf(text, 64, L"%.2f 分", stats.best.average);
         drawText(text, 280, 420, COLOR_PRIMARY, 22, FW_SEMIBOLD);
     }
 
-    float passRate = count > 0 ? allPass * 100.0f / count : 0.0f;
-    float excellentRate = count > 0 ? excellent * 100.0f / count : 0.0f;
     drawText(L"全部及格率", 650, 342, COLOR_MUTED, 16);
-    swprintf(text, 64, L"%.1f%%", passRate);
+    swprintf(text, 64, L"%.1f%%", stats.passRate);
     drawText(text, 650, 378, COLOR_SUCCESS, 28, FW_BOLD);
     drawText(L"优秀率", 900, 342, COLOR_MUTED, 16);
-    swprintf(text, 64, L"%.1f%%", excellentRate);
+    swprintf(text, 64, L"%.1f%%", stats.excellentRate);
     drawText(text, 900, 378, RGB(126, 87, 194), 28, FW_BOLD);
 
     drawButton({242, 605, 350, 649}, L"导出报表", RGB(0, 137, 123));
@@ -336,13 +371,59 @@ void drawStatisticsView(const AppState &app) {
     drawButton({1120, 605, 1222, 649}, L"退出", COLOR_DANGER);
 }
 
+void drawCreatorCard(int x, int y, int width, int index) {
+    const CreatorInfo *creator = getCreatorInfo(index);
+    if (creator == nullptr) return;
+
+    fillPanel({x, y, x + width, y + 250}, COLOR_PANEL);
+    fillPanel({x, y, x + width, y + 7}, COLOR_PRIMARY);
+
+    wchar_t memberTitle[32];
+    swprintf(memberTitle, 32, L"制作者 %d", index + 1);
+    drawText(memberTitle, x + 26, y + 28, COLOR_TEXT, 22, FW_BOLD);
+
+    drawText(L"院系", x + 26, y + 82, COLOR_MUTED, 14);
+    drawText(utf8ToWide(creator->department), x + 26, y + 106, COLOR_TEXT, 18);
+    drawText(L"学号", x + 26, y + 145, COLOR_MUTED, 14);
+    drawText(utf8ToWide(creator->studentId), x + 26, y + 169, COLOR_TEXT, 18);
+    drawText(L"姓名", x + 26, y + 208, COLOR_MUTED, 14);
+    drawText(utf8ToWide(creator->name), x + 86, y + 206, COLOR_TEXT, 18, FW_SEMIBOLD);
+}
+
+/* “关于”页面展示课程项目信息及三位制作者。 */
+void drawAboutView() {
+    drawText(L"学生成绩管理系统", 242, 112, COLOR_TEXT, 26, FW_BOLD);
+    drawText(L"基于 C/C++、EasyX 和链表实现的课程设计项目",
+             242, 151, COLOR_MUTED, 17);
+
+    const int cardWidth = 300;
+    drawCreatorCard(242, 210, cardWidth, 0);
+    drawCreatorCard(562, 210, cardWidth, 1);
+    drawCreatorCard(882, 210, cardWidth, 2);
+}
+
 void render(const AppState &app) {
+    /*
+     * 先在 1280×680 离屏画布上完成绘制，再高质量拉伸到实际窗口。
+     * 这样可以同时支持不同分辨率，并保持控件比例和字体布局一致。
+     */
+    SetWorkingImage(&logicalCanvas);
+    setbkmode(TRANSPARENT);
     setbkcolor(COLOR_BG);
     cleardevice();
     drawSidebar(app);
     drawHeader(app);
     if (app.view == View::Students) drawStudentsView(app);
-    else drawStatisticsView(app);
+    else if (app.view == View::Statistics) drawStatisticsView(app);
+    else drawAboutView();
+
+    SetWorkingImage();
+    HDC target = GetImageHDC();
+    HDC source = GetImageHDC(&logicalCanvas);
+    SetStretchBltMode(target, HALFTONE);
+    SetBrushOrgEx(target, 0, 0, nullptr);
+    StretchBlt(target, 0, 0, canvasWidth, canvasHeight,
+               source, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, SRCCOPY);
     FlushBatchDraw();
 }
 
@@ -369,6 +450,7 @@ void editStudentFromGui(AppState &app, Node *node) {
 void deleteStudentFromGui(AppState &app, Node *node) {
     if (node == nullptr) return;
     std::wstring message = L"确定删除学生 " + utf8ToWide(node->data.name) + L" 吗？";
+    /* 删除属于不可逆操作，执行前要求用户再次确认。 */
     if (MessageBoxW(GetHWnd(), message.c_str(), L"确认删除",
                     MB_YESNO | MB_ICONWARNING) != IDYES) return;
     std::string number = node->data.num;
@@ -394,7 +476,7 @@ void sortFromGui(AppState &app) {
         return;
     }
     int value = _wtoi(choice.c_str());
-    if (value < 1 || value > 6) {
+    if (!isSortTypeValid(value)) {
         showMessage(L"排序方式必须是 1 到 6。", MB_OK | MB_ICONWARNING);
         return;
     }
@@ -404,6 +486,7 @@ void sortFromGui(AppState &app) {
 }
 
 bool handleStudentsClick(AppState &app, int x, int y) {
+    /* 按钮和表格行的点击区域均使用逻辑坐标判断。 */
     if (Rect{242, 102, 340, 142}.contains(x, y)) addStudentFromGui(app);
     else if (Rect{352, 102, 450, 142}.contains(x, y)) searchFromGui(app);
     else if (Rect{462, 102, 570, 142}.contains(x, y)) {
@@ -426,23 +509,24 @@ bool handleStudentsClick(AppState &app, int x, int y) {
     } else if (Rect{1035, 611, 1125, 651}.contains(x, y)) {
         if (app.page > 0) --app.page;
     } else if (Rect{1135, 611, 1225, 651}.contains(x, y)) {
-        auto students = filteredStudents(app);
-        int pageCount = std::max(1, static_cast<int>(
-            std::ceil(students.size() / static_cast<double>(PAGE_SIZE))));
+        int studentCount = countFilteredStudents(app.head, app.filter.c_str());
+        int pageCount = calculatePageCount(studentCount, PAGE_SIZE);
         if (app.page + 1 < pageCount) ++app.page;
     } else {
-        auto students = filteredStudents(app);
+        int studentCount = countFilteredStudents(app.head, app.filter.c_str());
         int start = app.page * PAGE_SIZE;
         for (int row = 0; row < PAGE_SIZE; ++row) {
             int index = start + row;
-            if (index >= static_cast<int>(students.size())) break;
+            if (index >= studentCount) break;
+            Node *node = getFilteredStudentAt(app.head, app.filter.c_str(), index);
+            if (node == nullptr) break;
             int rowY = 215 + row * 38;
             if (Rect{1020, rowY - 3, 1092, rowY + 27}.contains(x, y)) {
-                editStudentFromGui(app, students[index]);
+                editStudentFromGui(app, node);
                 break;
             }
             if (Rect{1102, rowY - 3, 1174, rowY + 27}.contains(x, y)) {
-                deleteStudentFromGui(app, students[index]);
+                deleteStudentFromGui(app, node);
                 break;
             }
         }
@@ -451,6 +535,7 @@ bool handleStudentsClick(AppState &app, int x, int y) {
 }
 
 bool handleClick(AppState &app, int x, int y) {
+    /* 先处理全局导航，再将事件分派给当前页面。 */
     if (Rect{18, 125, 192, 171}.contains(x, y)) {
         app.view = View::Students;
         return true;
@@ -459,7 +544,13 @@ bool handleClick(AppState &app, int x, int y) {
         app.view = View::Statistics;
         return true;
     }
+    if (Rect{18, 237, 192, 283}.contains(x, y)) {
+        app.view = View::About;
+        app.status = L"制作者信息";
+        return true;
+    }
     if (app.view == View::Students) return handleStudentsClick(app, x, y);
+    if (app.view == View::About) return true;
     if (Rect{242, 605, 350, 649}.contains(x, y)) {
         exportReport(app.head, EXPORT_FILE);
         app.status = L"报表已导出到 export.txt";
@@ -475,6 +566,9 @@ bool handleClick(AppState &app, int x, int y) {
 } // namespace
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+    enableHighDpiRendering();
+
+    /* 创建链表头结点并从运行目录加载初始数据。 */
     AppState app;
     app.head = createList();
     if (app.head == nullptr) {
@@ -484,14 +578,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     }
 
     loadFromFile(app.head, DATA_FILE);
-    initgraph(WINDOW_WIDTH, WINDOW_HEIGHT);
+    /* 计算接近全屏的窗口尺寸，但保留标题栏和任务栏。 */
+    RECT workArea;
+    SystemParametersInfoW(SPI_GETWORKAREA, 0, &workArea, 0);
+    calculateCanvasSize(workArea);
+    initgraph(canvasWidth, canvasHeight);
     HWND window = GetHWnd();
     SetWindowTextW(window, L"学生成绩管理系统 - EasyX");
 
     RECT windowRect;
-    RECT workArea;
     GetWindowRect(window, &windowRect);
-    SystemParametersInfoW(SPI_GETWORKAREA, 0, &workArea, 0);
     int windowWidth = windowRect.right - windowRect.left;
     int windowHeight = windowRect.bottom - windowRect.top;
     int windowX = workArea.left + (workArea.right - workArea.left - windowWidth) / 2;
@@ -503,12 +599,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     BeginBatchDraw();
     render(app);
 
+    /* 使用非阻塞消息循环，保证窗口持续重绘且能及时响应鼠标和键盘。 */
     bool running = true;
     while (running && IsWindow(window)) {
         ExMessage message;
         while (peekmessage(&message, EX_MOUSE | EX_KEY)) {
             if (message.message == WM_LBUTTONDOWN) {
-                running = handleClick(app, message.x, message.y);
+                running = handleClick(app,
+                                      toLogicalX(message.x),
+                                      toLogicalY(message.y));
             } else if (message.message == WM_KEYDOWN && message.vkcode == VK_ESCAPE) {
                 running = false;
             }
@@ -517,6 +616,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Sleep(30);
     }
 
+    /* 退出前保存数据，并按创建顺序释放 EasyX 和链表资源。 */
     saveToFile(app.head, DATA_FILE);
     freeList(app.head);
     EndBatchDraw();

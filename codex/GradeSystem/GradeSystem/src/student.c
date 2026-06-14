@@ -4,6 +4,7 @@
 
 #include "student.h"
 
+/* 创建不保存学生数据的头结点，便于统一处理首结点的增删操作。 */
 Node *createList(void) {
     Node *head = (Node *)malloc(sizeof(Node));
     if (head != NULL) {
@@ -21,6 +22,7 @@ static Node *createNode(Student stu) {
     return node;
 }
 
+/* 释放头结点以及后续所有学生结点。 */
 void freeList(Node *head) {
     Node *p = head;
     while (p != NULL) {
@@ -30,6 +32,7 @@ void freeList(Node *head) {
     }
 }
 
+/* 仅清空学生结点，保留头结点供程序继续使用。 */
 void clearList(Node *head) {
     if (head == NULL) return;
     Node *p = head->next;
@@ -62,6 +65,7 @@ static Node *findPrevByNum(Node *head, const char *num) {
     return NULL;
 }
 
+/* 通过前驱结点定位目标，可复用删除操作所需的查找结果。 */
 static Node *findByNum(Node *head, const char *num) {
     Node *prev = findPrevByNum(head, num);
     return prev == NULL ? NULL : prev->next;
@@ -72,6 +76,7 @@ int isNumExist(Node *head, const char *num) {
 }
 
 int appendStudent(Node *head, Student stu) {
+    /* 学号在系统中作为唯一标识，禁止插入重复记录。 */
     if (head == NULL || isNumExist(head, stu.num)) return 0;
     Node *node = createNode(stu);
     if (node == NULL) return 0;
@@ -89,6 +94,7 @@ int removeByNum(Node *head, const char *num, Student *removed) {
     Node *prev = findPrevByNum(head, num);
     if (prev == NULL) return 0;
     Node *target = prev->next;
+    /* 调用者需要撤销或显示时，可以取得被删除记录的副本。 */
     if (removed != NULL) *removed = target->data;
     prev->next = target->next;
     free(target);
@@ -110,6 +116,7 @@ int isNumFormatValid(const char *num) {
     if (num == NULL) return 0;
     int len = (int)strlen(num);
     if (len < 4 || len >= NUM_LEN) return 0;
+    /* 学号限定为 4 到 19 位数字。 */
     for (int i = 0; i < len; i++) {
         if (!isdigit((unsigned char)num[i])) return 0;
     }
@@ -120,6 +127,7 @@ int isNameFormatValid(const char *name) {
     if (name == NULL) return 0;
     int len = (int)strlen(name);
     if (len <= 0 || len >= NAME_LEN) return 0;
+    /* 数据文件以空格分隔字段，因此姓名中不允许出现空白字符。 */
     for (int i = 0; i < len; i++) {
         if (isspace((unsigned char)name[i])) return 0;
     }

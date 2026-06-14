@@ -1,0 +1,30 @@
+Visual Studio 2026 + EasyX 运行说明
+
+一、准备
+
+1. 安装 Visual Studio 2026 的“使用 C++ 的桌面开发”工作负载。
+2. 将 EasyX 安装到 Visual Studio 2026。
+3. 本项目使用 x64 平台。
+
+二、打开项目
+
+1. 启动 Visual Studio 2026。
+2. 选择“打开本地文件夹”。
+3. 打开当前 GradeSystem 文件夹，也就是包含 CMakeLists.txt 的目录。
+4. 等待 Visual Studio 完成 CMake 配置。
+5. 选择配置预设 vs2026-x64。
+6. 将启动项设为 GradeSystem.exe，按 F5 运行。
+
+三、构建结果
+
+Debug 程序位于：
+
+out\build\vs2026-x64\GradeSystem.exe
+
+程序、data.txt、backup.txt 和 export.txt 使用同一个工作目录。
+
+四、说明
+
+main.cpp 使用 C++ 和 EasyX 实现图形界面。
+student.c、file.c、analysis.c 保留为 C 语言模块。
+CMake 会自动查找 Visual Studio 2026 安装目录中的 EasyX 头文件和 x64 库。

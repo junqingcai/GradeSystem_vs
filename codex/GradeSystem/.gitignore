@@ -1,6 +1,7 @@
-/.idea/
-/cmake-build-*/
-/GradeSystem/cmake-build-*/
+/.vs/
+/GradeSystem/.vs/
+/GradeSystem/out/
+vs2026-build*.log
 *.exe
 *.dll
 *.a
